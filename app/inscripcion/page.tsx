@@ -36,63 +36,85 @@ export default function InscripcionPage() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
 
   async function activarInscripcion() {
-    if (activating) return;
+  if (activating) return;
 
-    if (!acceptedTerms) {
+  if (!acceptedTerms) {
+    setMessageType("error");
+    setMessage(
+      "Para continuar, primero acepta los Términos y Condiciones y el Aviso de Privacidad."
+    );
+    return;
+  }
+
+  setMessage("");
+  setMessageType("");
+  setActivating(true);
+
+  try {
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+
+    if (authError || !authData.user?.email) {
       setMessageType("error");
-      setMessage("Para continuar, primero acepta los Términos y Condiciones y el Aviso de Privacidad.");
+      setMessage("Primero inicia sesión para activar tu inscripción.");
       return;
     }
 
-    setMessage("");
-    setMessageType("");
-    setActivating(true);
+    const email = authData.user.email.trim().toLowerCase();
 
-    try {
-      const { data: authData, error: authError } = await supabase.auth.getUser();
+    const profileResponse = await fetch("/api/create-user-profile", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
 
-      if (authError || !authData.user?.email) {
-        setMessageType("error");
-        setMessage("Primero inicia sesión para activar tu inscripción.");
-        return;
-      }
+    const profileData = await profileResponse.json();
 
-      const response = await fetch("/api/create-preference", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          email: authData.user.email,
-        }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        console.log(data);
-        setMessageType("error");
-        setMessage(data?.error ?? "No se pudo iniciar el pago. Inténtalo de nuevo.");
-        return;
-      }
-
-      const checkoutUrl = data.init_point;
-
-      if (!checkoutUrl) {
-        setMessageType("error");
-        setMessage("Mercado Pago no devolvió una liga de pago. Inténtalo de nuevo.");
-        return;
-      }
-
-      window.location.href = checkoutUrl;
-    } catch (error) {
-      console.log(error);
+    if (!profileResponse.ok) {
+      console.log(profileData);
       setMessageType("error");
-      setMessage("Ocurrió un error al conectar con Mercado Pago. Inténtalo de nuevo.");
-    } finally {
-      setActivating(false);
+      setMessage(
+        profileData?.error ??
+          "No se pudo preparar tu perfil. Inténtalo de nuevo."
+      );
+      return;
     }
+
+    const response = await fetch("/api/create-preference", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ email }),
+    });
+
+    const data = await response.json();
+
+    if (!response.ok) {
+      console.log(data);
+      setMessageType("error");
+      setMessage(data?.error ?? "No se pudo iniciar el pago. Inténtalo de nuevo.");
+      return;
+    }
+
+    const checkoutUrl = data.init_point;
+
+    if (!checkoutUrl) {
+      setMessageType("error");
+      setMessage("Mercado Pago no devolvió una liga de pago. Inténtalo de nuevo.");
+      return;
+    }
+
+    window.location.href = checkoutUrl;
+  } catch (error) {
+    console.log(error);
+    setMessageType("error");
+    setMessage("Ocurrió un error al preparar tu inscripción. Inténtalo de nuevo.");
+  } finally {
+    setActivating(false);
   }
+}
 
   return (
     <main className="inscripcionPage">

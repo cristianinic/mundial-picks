@@ -57,7 +57,7 @@ export async function POST(request: Request) {
 
         auto_return: "approved",
 
-        notification_url: `${siteUrl}/api/mercadopago/webhook`,
+       notification_url: `${siteUrl}/api/webhook`,
       },
     });
 

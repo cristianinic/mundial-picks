@@ -258,6 +258,12 @@ export default function HomePage() {
               </Link>
             </div>
 
+            <div className="entryPriceCard" aria-label="Precio de inscripción">
+              <span className="entryPriceLabel">Inscripción única</span>
+              <strong>$99 MXN</strong>
+              <small>Acceso completo al torneo · sin pagos mensuales</small>
+            </div>
+
             <div className="heroActions">
               <Link href="/inscripcion" className="primaryButton">
                 Inscribirme ahora <span>→</span>
@@ -465,7 +471,7 @@ export default function HomePage() {
             <div className="ctaIcon">🏆</div>
             <div>
               <h3>Demuestra cuánto sabes de fútbol y compite por $20,000 MXN.</h3>
-              <p>El premio es para el mejor predictor del ranking global.</p>
+              <p>Inscripción única de $99 MXN. El premio es para el mejor predictor del ranking global.</p>
             </div>
           </div>
 
@@ -1166,6 +1172,52 @@ export default function HomePage() {
           font-weight: 950;
           color: #ffffff;
           letter-spacing: .01em;
+        }
+
+        .entryPriceCard {
+          width: fit-content;
+          margin-top: 16px;
+          display: grid;
+          grid-template-columns: auto auto;
+          grid-template-areas:
+            "label price"
+            "note note";
+          align-items: center;
+          gap: 3px 12px;
+          border-radius: 16px;
+          padding: 12px 16px;
+          color: white;
+          background:
+            linear-gradient(135deg, rgba(34,197,94,.16), rgba(245,158,11,.10)),
+            rgba(0,0,0,.24);
+          border: 1px solid rgba(34,197,94,.34);
+          box-shadow: 0 14px 34px rgba(34,197,94,.10), inset 0 1px 0 rgba(255,255,255,.06);
+        }
+
+        .entryPriceLabel {
+          grid-area: label;
+          color: #86efac;
+          font-size: 12px;
+          font-weight: 950;
+          text-transform: uppercase;
+          letter-spacing: .08em;
+        }
+
+        .entryPriceCard strong {
+          grid-area: price;
+          color: #ffffff;
+          font-size: 30px;
+          line-height: .9;
+          font-weight: 950;
+          letter-spacing: -.04em;
+        }
+
+        .entryPriceCard small {
+          grid-area: note;
+          color: rgba(255,255,255,.68);
+          font-size: 12px;
+          line-height: 1.25;
+          font-weight: 800;
         }
 
         .heroMiniActions {
@@ -2195,6 +2247,10 @@ export default function HomePage() {
           .ctaActions { flex-direction: column; align-items: stretch; width: 100%; }
           .ctaActions .primaryButton,
           .ctaActions .secondaryButton { width: 100%; }
+          .entryPriceCard {
+            width: 100%;
+            grid-template-columns: 1fr auto;
+          }
           .heroActions .primaryButton,
           .heroActions .secondaryButton,
           .heroMiniActions .prizeNotice,
