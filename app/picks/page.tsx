@@ -4841,8 +4841,138 @@ function buildAnnexCMap() {
 
 const ANNEX_C_MAP = buildAnnexCMap();
 
+// Cobertura completa de las 495 combinaciones posibles de mejores terceros.
+// FIFA define 495 escenarios porque se eligen 8 grupos de 12 (12C8 = 495).
+// ANNEX_C_MAP conserva las filas oficiales cargadas arriba; para cualquier combinación
+// que no esté explícita en esa tabla, este generador crea una asignación estable y válida
+// para que el bracket nunca deje terceros clasificados como "POR DEFINIR".
+const ALL_THIRD_PLACE_GROUPS = [
+  "A",
+  "B",
+  "C",
+  "D",
+  "E",
+  "F",
+  "G",
+  "H",
+  "I",
+  "J",
+  "K",
+  "L",
+] as const;
+
+type ThirdPlaceGroup = (typeof ALL_THIRD_PLACE_GROUPS)[number];
+
+const ANNEX_C_FALLBACK_PREFERENCES: Record<
+  (typeof ANNEX_C_COLUMNS)[number],
+  ThirdPlaceGroup[]
+> = {
+  A: ["E", "H", "C", "I", "F", "D", "B", "G", "J", "K", "L", "A"],
+  B: ["J", "G", "E", "I", "H", "F", "D", "C", "B", "A", "K", "L"],
+  D: ["B", "I", "J", "E", "F", "H", "C", "D", "A", "G", "K", "L"],
+  E: ["D", "C", "F", "B", "A", "E", "G", "H", "I", "J", "K", "L"],
+  G: ["A", "J", "H", "I", "B", "E", "C", "D", "F", "G", "K", "L"],
+  I: ["F", "G", "D", "H", "E", "I", "J", "C", "B", "A", "K", "L"],
+  K: ["L", "I", "E", "D", "J", "K", "H", "G", "F", "C", "B", "A"],
+  L: ["K", "I", "J", "E", "H", "L", "G", "F", "D", "C", "B", "A"],
+};
+
+function normalizeThirdGroupsKey(value: string) {
+  return value
+    .toUpperCase()
+    .replace(/[^A-L]/g, "")
+    .split("")
+    .filter((group, index, arr) => arr.indexOf(group) === index)
+    .sort((a, b) => a.localeCompare(b))
+    .join("");
+}
+
+function buildFallbackAnnexCAssignment(
+  bestThirdGroupsKey: string,
+): AnnexCAssignment | undefined {
+  const normalizedKey = normalizeThirdGroupsKey(bestThirdGroupsKey);
+  const availableGroups = normalizedKey.split("") as ThirdPlaceGroup[];
+
+  if (availableGroups.length !== 8) return undefined;
+
+  const result: Partial<AnnexCAssignment> = {};
+  const used = new Set<string>();
+
+  function assignColumn(index: number): boolean {
+    if (index >= ANNEX_C_COLUMNS.length) return true;
+
+    const column = ANNEX_C_COLUMNS[index];
+    const preferredGroups = ANNEX_C_FALLBACK_PREFERENCES[column].filter(
+      (group) => availableGroups.includes(group) && !used.has(group),
+    );
+
+    const remainingGroups = availableGroups.filter(
+      (group) => !used.has(group) && !preferredGroups.includes(group),
+    );
+
+    for (const group of [...preferredGroups, ...remainingGroups]) {
+      used.add(group);
+      result[column] = group;
+
+      if (assignColumn(index + 1)) return true;
+
+      used.delete(group);
+      delete result[column];
+    }
+
+    return false;
+  }
+
+  if (!assignColumn(0)) return undefined;
+
+  return {
+    A: result.A,
+    B: result.B,
+    D: result.D,
+    E: result.E,
+    G: result.G,
+    I: result.I,
+    K: result.K,
+    L: result.L,
+  };
+}
+
+function generateThirdPlaceGroupKeys() {
+  const keys: string[] = [];
+
+  function walk(start: number, selected: string[]) {
+    if (selected.length === 8) {
+      keys.push(selected.join(""));
+      return;
+    }
+
+    for (let i = start; i < ALL_THIRD_PLACE_GROUPS.length; i += 1) {
+      walk(i + 1, [...selected, ALL_THIRD_PLACE_GROUPS[i]]);
+    }
+  }
+
+  walk(0, []);
+  return keys;
+}
+
+function buildCompleteAnnexCMap() {
+  const completeMap: Record<string, AnnexCAssignment> = { ...ANNEX_C_MAP };
+
+  generateThirdPlaceGroupKeys().forEach((key) => {
+    if (!completeMap[key]) {
+      const assignment = buildFallbackAnnexCAssignment(key);
+      if (assignment) completeMap[key] = assignment;
+    }
+  });
+
+  return completeMap;
+}
+
+const COMPLETE_ANNEX_C_MAP = buildCompleteAnnexCMap();
+
 function getAnnexCAssignment(
   bestThirdGroupsKey: string,
 ): AnnexCAssignment | undefined {
-  return ANNEX_C_MAP[bestThirdGroupsKey];
+  const normalizedKey = normalizeThirdGroupsKey(bestThirdGroupsKey);
+  return COMPLETE_ANNEX_C_MAP[normalizedKey];
 }
